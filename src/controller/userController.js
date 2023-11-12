@@ -1,53 +1,30 @@
-const { Op } = require("sequelize");
-const { User } = require("../models");
-const { compareSync } = require("bcryptjs");
+const { User, Post } = require("../models");
+const { compareSync, hashSync } = require("bcryptjs");
+const { sign } = require("jsonwebtoken");
+const { sequelizeErrorHandler, validateRequiredFields, validatePassword } = require("../lib");
 
 const registerUser = async (req, res) => {
-  console.log(req.body)
   try {
     const { username, email, password } = req.body;
 
-    let requiredFields = "";
+    validateRequiredFields({ username, email, password });
 
-    Object.entries({
-      username,
-      email,
-      password
-    }).forEach(([key, value], idx) => {
-      console.log(value)
-      if (!value) {
-        requiredFields += `${key}, `;
-      }
-    });
-
-    if (requiredFields !== "") {
-      return res.status(400).send({ message: `${requiredFields}must be provided` });
-    }
+    validatePassword(password);
 
     const newUser = await User.create({
       username,
       email,
-      password
+      password: hashSync(password),
     });
 
     if (!newUser) {
       throw new Error("Failed creating new user");
     }
 
-    return res.send({ message: "new user has been created", data: newUser });
+    return res.status(201).send({ message: "new user has been created", data: newUser });
 
   } catch (error) {
-    if (["SequelizeValidationError", "SequelizeUniqueConstraintError"].includes(error.name)) {
-      const errorFieldList = {};
-      let errFields = "";
-      error?.errors?.map(err => {
-        errorFieldList[err.path] = err.message;
-        errFields += ` ${err.path}`;
-      })
-      // console.log(errorFieldList);
-      return res.status(400).send({ message: `Error validation of${errFields}`, errorField: errorFieldList, error });
-    }
-    return res.status(500).send({ message: error.message, error });
+    return sequelizeErrorHandler(error, { res }) || res.status(error.statusCode || 500).send({ message: error.message, error });
   }
 }
 
@@ -56,9 +33,11 @@ const loginUser = async (req, res) => {
 
     const { username, email, password } = req.body;
 
-    if (!username || !email) {
+    if (!username && !email) {
       return res.status(400).send({ message: `username or email must be provided` });
     }
+
+    validatePassword(password);
 
     const user = await User.findOne({
       where: {
@@ -71,12 +50,21 @@ const loginUser = async (req, res) => {
     }
 
     if (!compareSync(password, user.password)) {
-      return res.status(400).send({ message: `account credentials not match` });
+      return res.status(400).send({ message: `account credential didn't match` });
     }
 
-    // sign a jwt
+    const token = sign(
+      {
+        userId: user.id,
+        username,
+      },
+      process.env.JWT_SECRET,
+      {
+        expiresIn: process.env.JWT_EXPIRES_IN || "12h",
+      }
+    )
 
-    return res.send({ message: "success login" });
+    return res.send({ message: "success login", token });
   } catch (error) {
     return res.status(500).send({ message: error.message, error });
   }
@@ -86,7 +74,7 @@ const getUsers = async (req, res) => {
   try {
     const limit = req.params?.limit || 10;
     const offset = req.params?.offset || ((req.params?.page || 1) - 1) * limit;
-    const { count, rows: users } = await User.findAndCountAll();
+    const { count, rows: users } = await User.findAndCountAll({ include: [Post] });
 
     return res.send({
       data: users,

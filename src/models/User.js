@@ -1,8 +1,5 @@
 "use strict"
 
-const { hashSync } = require("bcryptjs");
-
-// const userModel
 module.exports = (sequelize, DataTypes) => {
   const User = sequelize.define(
     "User",
@@ -12,16 +9,13 @@ module.exports = (sequelize, DataTypes) => {
         allowNull: false,
         unique: true,
         validate: {
-          // is: {
-          //   args: /^[\a-z0-9_][\a-z0-9_.]+[\a-z0-9_]+$/,
-          //   msg: "username cannot started and ended with dot (.). username must only consists of any of these character: lowercase letters (a-z) or digits (0-9) or underscored (_) or dot (.)"
-          // },
-          // notEmpty: {
-          //   msg: "username cannot be empty"
-          // },
-          is: /^[\a-z0-9_][\a-z0-9_.]+[\a-z0-9_]+$/,
-          notEmpty: true,
-          len: [4, 32],
+          is: {
+            args: /^[\a-z0-9_][\a-z0-9_.]{2,30}[\a-z0-9_]$/,
+            msg: "username format didn't match. Format: 4 - 32 characters length. Allowed characters are lowercase letters (a-z), digits (0-9), underscores (_) or dots (.). Dot (.) cannot be placed in the beginning or the end of username."
+          },
+          notEmpty: {
+            msg: "username cannot be empty"
+          },
         }
       },
       email: {
@@ -29,58 +23,39 @@ module.exports = (sequelize, DataTypes) => {
         allowNull: false,
         unique: true,
         validate: {
-          // notEmpty: {
-          //   msg: "email cannot be empty"
-          // },
-          // isEmail: {
-          //   msg: "must be an email format"
-          // },
-          notEmpty: true,
-          isEmail: true,
+          notEmpty: {
+            msg: "email cannot be empty"
+          },
+          isEmail: {
+            msg: "email format didn't match"
+          },
         }
       },
       password: {
         type: DataTypes.STRING,
         allowNull: false,
-        set(value) {
-          console.log("inside models")
-          console.log("value: ", value);
-          console.log("this username: ", this.username);
-          console.log("this email: ", this.email);
-          if (value === "") {
-            throw new Error("password cannot be empty")
-          }
-
-          try {
-            console.log("hashed: ", hashSync(value))
-            // console.log("hashed with salt determined: ", hashSync(value, process.env.APP_SECRET))
-
-            this.setDataValue('password', hashSync(value));
-
-          } catch (error) {
-            console.log("an error when setting password in models set: ")
-            console.log(error.message)
-          }
-        }
+        validate: {
+          notEmpty: {
+            msg: "password cannot be empty"
+          },
+        },
       },
     },
     {
       hooks: {
-        afterCreate: (record) => {
-          delete record.dataValues.password;
+        afterCreate: (user) => {
+          delete user.dataValues.password;
         },
-        afterUpdate: (record) => {
-          delete record.dataValues.password;
+        afterUpdate: (user) => {
+          delete user.dataValues.password;
         },
       }
     }
   );
 
   User.associate = (models) => {
-    // models.
+    User.hasMany(models.Post)
   }
 
   return User;
 }
-
-// module.exports = userModel;
