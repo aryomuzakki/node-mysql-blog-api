@@ -1,6 +1,6 @@
 'use strict';
 
-const { Post, User } = require("../models");
+const { Post } = require("../models");
 
 /** @type {import('sequelize-cli').Migration} */
 module.exports = {
@@ -25,7 +25,6 @@ module.exports = {
       ],
       {
         validate: true,
-        include: [User]
       }
     )
   },

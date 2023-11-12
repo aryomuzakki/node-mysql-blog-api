@@ -1,6 +1,6 @@
 "use strict"
 
-const { verify } = require("jsonwebtoken");
+const jwt = require("jsonwebtoken");
 const { User } = require("../models");
 
 /** @type {import("express").Router} */
@@ -11,7 +11,7 @@ const authUser = async (req, res, next) => {
     }
 
     const token = req.header("Authorization").replace("Bearer ", "");
-    const decodedUser = verify(token, process.env.JWT_SECRET);
+    const decodedUser = jwt.verify(token, process.env.JWT_SECRET);
 
     const user = await User.findOne({ where: { id: decodedUser.userId } });
 

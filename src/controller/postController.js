@@ -3,9 +3,9 @@ const { sequelizeErrorHandler, validateRequiredFields } = require("../lib");
 
 const getAllPosts = async (req, res) => {
   try {
-    const limit = req.params?.limit || 10;
-    const offset = req.params?.offset || ((req.params?.page || 1) - 1) * limit;
-    const { count, rows: posts } = await Post.findAndCountAll({ include: User });
+    const limit = req.query?.limit || 10;
+    const offset = req.query?.offset || ((req.query?.page || 1) - 1) * limit;
+    const { count, rows: posts } = await Post.findAndCountAll({ limit, offset, include: User });
 
     return res.send({
       data: posts,

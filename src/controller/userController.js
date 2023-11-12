@@ -1,6 +1,6 @@
 const { User, Post } = require("../models");
 const { compareSync, hashSync } = require("bcryptjs");
-const { sign } = require("jsonwebtoken");
+const jwt = require("jsonwebtoken");
 const { sequelizeErrorHandler, validateRequiredFields, validatePassword } = require("../lib");
 
 const registerUser = async (req, res) => {
@@ -50,10 +50,10 @@ const loginUser = async (req, res) => {
     }
 
     if (!compareSync(password, user.password)) {
-      return res.status(400).send({ message: `account credential didn't match` });
+      return res.status(400).send({ message: `account credentials not match` });
     }
 
-    const token = sign(
+    const token = jwt.sign(
       {
         userId: user.id,
         username,
@@ -72,9 +72,9 @@ const loginUser = async (req, res) => {
 
 const getUsers = async (req, res) => {
   try {
-    const limit = req.params?.limit || 10;
-    const offset = req.params?.offset || ((req.params?.page || 1) - 1) * limit;
-    const { count, rows: users } = await User.findAndCountAll({ include: [Post] });
+    const limit = req.query?.limit || 10;
+    const offset = req.query?.offset || ((req.query?.page || 1) - 1) * limit;
+    const { count, rows: users } = await User.findAndCountAll({ limit, offset, include: [Post] });
 
     return res.send({
       data: users,

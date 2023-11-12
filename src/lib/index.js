@@ -3,8 +3,8 @@ function CustomError(msgOrObj) {
     this[key] = val;
   });
   this.name = msgOrObj.name || 'CustomError';
-  this.message = msgOrObj?.message || msgOrObj || '';
-  let error = new Error(this.message);
+  this.message = msgOrObj?.message || message || '';
+  let error = new Error(this.message?.message || this.message);
   error.name = this.name;
   this.stack = error.stack;
 }

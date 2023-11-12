@@ -37,7 +37,8 @@ module.exports = (sequelize, DataTypes) => {
   );
 
   Post.associate = (models) => {
-    Post.belongsTo(models.User);
+    Post.belongsTo(models.User, { foreignKey: "userId" });
+    Post.hasMany(models.Comment, { foreignKey: "postId" });
   }
 
   return Post;
